@@ -14,14 +14,11 @@
  *    limitations under the License.
  */
 
-apply plugin: 'java'
-apply plugin: 'application'
+package pl.otros.swing.suggest;
 
+import java.util.List;
 
-sourceCompatibility = 1.6
-targetCompatibility = 1.6
-mainClassName = "pl.otros.swing.suggest.demo.SuggestBoxDemo"
-applicationName = "SuggestBoxDemo"
+public interface SuggestionSource<T> {
 
-
-version = "0.0.1-SNAPSHOT"
+  public List<T> getSuggestions(String value);
+}

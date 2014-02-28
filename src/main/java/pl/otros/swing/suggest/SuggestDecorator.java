@@ -14,14 +14,17 @@
  *    limitations under the License.
  */
 
-apply plugin: 'java'
-apply plugin: 'application'
+package pl.otros.swing.suggest;
 
+import javax.swing.*;
+import javax.swing.text.Document;
 
-sourceCompatibility = 1.6
-targetCompatibility = 1.6
-mainClassName = "pl.otros.swing.suggest.demo.SuggestBoxDemo"
-applicationName = "SuggestBoxDemo"
+public class SuggestDecorator {
 
+  public static <T> void decorate(JTextField textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer, SelectionListener<T> selectionListener) {
+    Document document = textField.getDocument();
+    SuggestionDocumentListener<? extends T> listener = new SuggestionDocumentListener<T>(textField, suggestionSource, suggestionRenderer, selectionListener);
+    document.addDocumentListener(listener);
 
-version = "0.0.1-SNAPSHOT"
+  }
+}

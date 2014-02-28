@@ -14,14 +14,12 @@
  *    limitations under the License.
  */
 
-apply plugin: 'java'
-apply plugin: 'application'
+package pl.otros.swing.suggest;
 
+import javax.swing.*;
 
-sourceCompatibility = 1.6
-targetCompatibility = 1.6
-mainClassName = "pl.otros.swing.suggest.demo.SuggestBoxDemo"
-applicationName = "SuggestBoxDemo"
+public interface SuggestionRenderer<T> {
 
+  public JComponent getSuggestionComponent(T suggestion);
 
-version = "0.0.1-SNAPSHOT"
+}

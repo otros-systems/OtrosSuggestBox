@@ -14,14 +14,10 @@
  *    limitations under the License.
  */
 
-apply plugin: 'java'
-apply plugin: 'application'
+package pl.otros.swing.suggest;
 
+public interface SelectionListener<T> {
 
-sourceCompatibility = 1.6
-targetCompatibility = 1.6
-mainClassName = "pl.otros.swing.suggest.demo.SuggestBoxDemo"
-applicationName = "SuggestBoxDemo"
+  public void selected(T value);
 
-
-version = "0.0.1-SNAPSHOT"
+}
