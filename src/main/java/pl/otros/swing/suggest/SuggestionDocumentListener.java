@@ -24,7 +24,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
 
-public class SuggestionDocumentListener<T> implements DocumentListener {
+class SuggestionDocumentListener<T> implements DocumentListener {
 
 
   private static final Object DOWN_ACTION = "Down action";
@@ -39,6 +39,7 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
   private boolean fullyInitialized = false;
   private final ComponentAdapter windowsSizeListener;
   private final FocusAdapter hideSuggestionFocusAdapter;
+  private JScrollPane suggestionScrollPane;
 
   @SuppressWarnings("serial")
   public SuggestionDocumentListener(final JTextField textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer, SelectionListener<T> selectionListener) {
@@ -61,8 +62,6 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
 
     };
     suggestionPanel = new JPanel();
-
-
     InputMap inputMap = textField.getInputMap();
     ActionMap actionMap = textField.getActionMap();
     inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), DOWN_ACTION);
@@ -100,13 +99,10 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
     suggestionWindow = new JWindow(windowAncestor);
     windowAncestor.addComponentListener(windowsSizeListener);
     textField.addComponentListener(windowsSizeListener);
-
-    JScrollPane suggestionScrollPane = new JScrollPane(suggestionPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-
+    suggestionScrollPane = new JScrollPane(suggestionPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
     suggestionWindow.getContentPane().add(suggestionScrollPane);
     suggestionWindow.addFocusListener(hideSuggestionFocusAdapter);
     fullyInitialized = true;
-
   }
 
   @Override
@@ -195,21 +191,16 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
           }
 
         });
-
-
         suggestionPanel.add(suggestionComponent);
-
       }
       suggestionWindow.pack();
       setSuggestionWindowLocation();
-
       if (!suggestionWindow.isVisible()) {
         suggestionWindow.setFocusableWindowState(false);
         suggestionWindow.setVisible(true);
         suggestionWindow.setFocusableWindowState(true);
       }
     }
-
   }
 
 
@@ -219,7 +210,11 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
 
 
   private void highlightSuggestion(JComponent suggestion) {
+    for (JComponent toClearHighlight : suggestionComponents) {
+      removeHighlightSuggestion(toClearHighlight);
+    }
     suggestion.setBorder(BorderFactory.createLineBorder(suggestion.getForeground()));
+    suggestionScrollPane.scrollRectToVisible(suggestion.getBounds());
   }
 
 
@@ -236,7 +231,7 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
   }
 
   private void setSuggestionWindowLocation() {
-    suggestionWindow.setSize(textField.getWidth(), suggestionWindow.getHeight());
+    suggestionWindow.setSize(textField.getWidth(), (int) Math.min(suggestionWindow.getHeight(), Toolkit.getDefaultToolkit().getScreenSize().getHeight() / 2));
     int x = (int) textField.getLocationOnScreen().getX();
     int y = (int) (textField.getLocationOnScreen().getY() + textField.getHeight());
     suggestionWindow.setLocation(x, y);

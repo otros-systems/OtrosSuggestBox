@@ -49,13 +49,7 @@ public class TestSuggestions {
         jTextArea.setBorder(BorderFactory.createTitledBorder("Element description:"));
         SuggestionSource<File> suggestionSource = new StringSuggestionSource();
 
-        SuggestionRenderer<File> suggestionRenderer = new SuggestionRenderer<File>() {
-
-          @Override
-          public JComponent getSuggestionComponent(File suggestion) {
-            return new JLabel(suggestion.getAbsolutePath());
-          }
-        };
+        SuggestionRenderer<File> suggestionRenderer = new FileSuggestionRenderer();
 
 
         SelectionListener<File> selectionListener = new SelectionListener<File>() {
