@@ -36,15 +36,18 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
   private SelectionListener<T> selectionListener;
   private JComponent[] suggestionComponents;
 
-  @SuppressWarnings ("serial")
+  private boolean fullyInitialized = false;
+  private final ComponentAdapter windowsSizeListener;
+  private final FocusAdapter hideSuggestionFocusAdapter;
+
+  @SuppressWarnings("serial")
   public SuggestionDocumentListener(final JTextField textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer, SelectionListener<T> selectionListener) {
     this.textField = textField;
     this.suggestionSource = suggestionSource;
     this.suggestionRenderer = suggestionRenderer;
     this.selectionListener = selectionListener;
-    Window windowAncestor = SwingUtilities.getWindowAncestor(textField);
-    suggestionWindow = new JWindow(windowAncestor);
-    ComponentAdapter windowsSizeListener = new ComponentAdapter() {
+
+    windowsSizeListener = new ComponentAdapter() {
 
       @Override
       public void componentResized(ComponentEvent e) {
@@ -58,11 +61,7 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
 
     };
     suggestionPanel = new JPanel();
-    JScrollPane suggestionScrollPane = new JScrollPane(suggestionPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-    suggestionWindow.getContentPane().add(suggestionScrollPane);
-    textField.addComponentListener(windowsSizeListener);
-    windowAncestor.addComponentListener(windowsSizeListener);
 
     InputMap inputMap = textField.getInputMap();
     ActionMap actionMap = textField.getActionMap();
@@ -71,13 +70,16 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
 
       @Override
       public void actionPerformed(ActionEvent e) {
+        if (suggestionWindow != null && !suggestionWindow.isVisible()) {
+          makeSuggestions();
+        }
         if (suggestionComponents != null && suggestionComponents.length > 0) {
           suggestionComponents[0].requestFocus();
         }
       }
     });
 
-    FocusAdapter hideSuggestionFocusAdapter = new FocusAdapter() {
+    hideSuggestionFocusAdapter = new FocusAdapter() {
 
       @Override
       public void focusLost(FocusEvent e) {
@@ -90,7 +92,21 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
 
     };
     textField.addFocusListener(hideSuggestionFocusAdapter);
+  }
+
+
+  private void lazyInit() {
+    Window windowAncestor = SwingUtilities.getWindowAncestor(textField);
+    suggestionWindow = new JWindow(windowAncestor);
+    windowAncestor.addComponentListener(windowsSizeListener);
+    textField.addComponentListener(windowsSizeListener);
+
+    JScrollPane suggestionScrollPane = new JScrollPane(suggestionPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
+    suggestionWindow.getContentPane().add(suggestionScrollPane);
     suggestionWindow.addFocusListener(hideSuggestionFocusAdapter);
+    fullyInitialized = true;
+
   }
 
   @Override
@@ -109,6 +125,10 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
   }
 
   void makeSuggestions() {
+    if (!fullyInitialized) {
+      lazyInit();
+    }
+
     String text = textField.getText();
     List<T> suggestions = suggestionSource.getSuggestions(text);
     int suggestionsSize = suggestions.size();
@@ -129,11 +149,9 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
         suggestionComponent.addKeyListener(new KeyAdapter() {
           @Override
           public void keyPressed(KeyEvent e) {
-            if (e.getKeyCode() == 38) {
-              //key up
+            if (e.getKeyCode() == KeyEvent.VK_UP) {
               FocusManager.getCurrentManager().focusPreviousComponent();
-            } else if (e.getKeyCode() == 40) {
-              //key up
+            } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
               FocusManager.getCurrentManager().focusNextComponent();
             } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
               suggestionSelected(suggestion);
@@ -194,6 +212,7 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
 
   }
 
+
   private void removeHighlightSuggestion(JComponent suggestionComponent) {
     suggestionComponent.setBorder(BorderFactory.createLineBorder(suggestionPanel.getBackground()));
   }
@@ -206,7 +225,9 @@ public class SuggestionDocumentListener<T> implements DocumentListener {
 
   protected void hideSuggestions() {
     textField.requestFocus();
-    suggestionWindow.setVisible(false);
+    if (suggestionWindow != null) {
+      suggestionWindow.setVisible(false);
+    }
   }
 
   protected void suggestionSelected(T suggestion) {

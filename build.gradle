@@ -20,7 +20,7 @@ apply plugin: 'application'
 
 sourceCompatibility = 1.6
 targetCompatibility = 1.6
-mainClassName = "pl.otros.swing.suggest.demo.SuggestBoxDemo"
+mainClassName = "pl.otros.swing.suggest.demo.TestSuggestions"
 applicationName = "SuggestBoxDemo"
 
 

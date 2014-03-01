@@ -45,16 +45,8 @@ public class TestSuggestions {
         jLabel.setDisplayedMnemonic('p');
         final JTextField textField = new JTextField(40);
         jLabel.setLabelFor(textField);
-
-        toolBar.add(jLabel);
-        toolBar.add(textField);
-
         final JTextArea jTextArea = new JTextArea(4, 40);
         jTextArea.setBorder(BorderFactory.createTitledBorder("Element description:"));
-
-        jPanel.add(toolBar, BorderLayout.NORTH);
-        jPanel.add(jTextArea, BorderLayout.CENTER);
-        contentPane.add(jPanel);
         SuggestionSource<File> suggestionSource = new StringSuggestionSource();
 
         SuggestionRenderer<File> suggestionRenderer = new SuggestionRenderer<File>() {
@@ -64,6 +56,8 @@ public class TestSuggestions {
             return new JLabel(suggestion.getAbsolutePath());
           }
         };
+
+
         SelectionListener<File> selectionListener = new SelectionListener<File>() {
 
           @Override
@@ -72,7 +66,17 @@ public class TestSuggestions {
             jTextArea.setText("Type: " + (value.isDirectory() ? "Folder" : "File"));
           }
         };
+
         SuggestDecorator.decorate(textField, suggestionSource, suggestionRenderer, selectionListener);
+
+        toolBar.add(jLabel);
+        toolBar.add(textField);
+
+
+        jPanel.add(toolBar, BorderLayout.NORTH);
+        jPanel.add(jTextArea, BorderLayout.CENTER);
+        contentPane.add(jPanel);
+
         frame.pack();
         frame.setVisible(true);
         textField.requestFocus();
