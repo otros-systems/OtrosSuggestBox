@@ -121,6 +121,9 @@ class SuggestionDocumentListener<T> implements DocumentListener {
   }
 
   void makeSuggestions() {
+    if (SwingUtilities.getWindowAncestor(textField) == null){
+      return;
+    }
     if (!fullyInitialized) {
       lazyInit();
     }

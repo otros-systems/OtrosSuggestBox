@@ -63,6 +63,8 @@ public class TestSuggestions {
 
         SuggestDecorator.decorate(textField, suggestionSource, suggestionRenderer, selectionListener);
 
+        textField.setText(File.listRoots()[0].getAbsolutePath());
+
         toolBar.add(jLabel);
         toolBar.add(textField);
 
