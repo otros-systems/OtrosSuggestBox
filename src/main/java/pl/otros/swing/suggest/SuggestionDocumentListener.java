@@ -156,6 +156,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
               suggestionSelected(suggestion);
             } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
               hideSuggestions();
+              textField.requestFocus();
             }
           }
 
@@ -222,7 +223,6 @@ class SuggestionDocumentListener<T> implements DocumentListener {
 
 
   protected void hideSuggestions() {
-    textField.requestFocus();
     if (suggestionWindow != null) {
       suggestionWindow.setVisible(false);
     }
