@@ -128,7 +128,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
       lazyInit();
     }
 
-    String text = textField.getText();
+    final String text = textField.getText();
     List<T> suggestions = suggestionSource.getSuggestions(text);
     int suggestionsSize = suggestions.size();
     if (suggestionsSize == 0) {
@@ -155,8 +155,8 @@ class SuggestionDocumentListener<T> implements DocumentListener {
             } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
               suggestionSelected(suggestion);
             } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+              textField.requestFocusInWindow();
               hideSuggestions();
-              textField.requestFocus();
             }
           }
 
@@ -230,11 +230,14 @@ class SuggestionDocumentListener<T> implements DocumentListener {
 
   protected void suggestionSelected(T suggestion) {
     selectionListener.selected(suggestion);
-    textField.requestFocus();
+    textField.getParent().requestFocus();
   }
 
   private void setSuggestionWindowLocation() {
-    suggestionWindow.setSize(textField.getWidth(), (int) Math.min(suggestionWindow.getHeight(), Toolkit.getDefaultToolkit().getScreenSize().getHeight() / 2));
+    final Point location = textField.getLocation();
+    suggestionWindow.pack();
+    int widht = Math.max(textField.getWidth(),suggestionWindow.getWidth());
+    suggestionWindow.setSize(widht, (int) Math.min(suggestionWindow.getHeight(), Toolkit.getDefaultToolkit().getScreenSize().getHeight() / 2));
     int x = (int) textField.getLocationOnScreen().getX();
     int y = (int) (textField.getLocationOnScreen().getY() + textField.getHeight());
     suggestionWindow.setLocation(x, y);
