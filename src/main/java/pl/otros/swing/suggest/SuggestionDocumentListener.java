@@ -121,7 +121,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
   }
 
   void makeSuggestions() {
-    if (SwingUtilities.getWindowAncestor(textField) == null){
+    if (SwingUtilities.getWindowAncestor(textField) == null) {
       return;
     }
     if (!fullyInitialized) {
@@ -229,15 +229,14 @@ class SuggestionDocumentListener<T> implements DocumentListener {
   }
 
   protected void suggestionSelected(T suggestion) {
+    textField.requestFocus();
     selectionListener.selected(suggestion);
-    textField.getParent().requestFocus();
   }
 
   private void setSuggestionWindowLocation() {
-    final Point location = textField.getLocation();
     suggestionWindow.pack();
-    int widht = Math.max(textField.getWidth(),suggestionWindow.getWidth());
-    suggestionWindow.setSize(widht, (int) Math.min(suggestionWindow.getHeight(), Toolkit.getDefaultToolkit().getScreenSize().getHeight() / 2));
+    int width = Math.max(textField.getWidth(), suggestionWindow.getWidth());
+    suggestionWindow.setSize(width, (int) Math.min(suggestionWindow.getHeight(), Toolkit.getDefaultToolkit().getScreenSize().getHeight() / 2));
     int x = (int) textField.getLocationOnScreen().getX();
     int y = (int) (textField.getLocationOnScreen().getY() + textField.getHeight());
     suggestionWindow.setLocation(x, y);

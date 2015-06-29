@@ -22,6 +22,7 @@ import pl.otros.swing.suggest.SuggestionRenderer;
 import pl.otros.swing.suggest.SuggestionSource;
 
 import javax.swing.*;
+import javax.swing.text.BadLocationException;
 import java.awt.*;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -44,8 +45,11 @@ public class TestSuggestions {
         JLabel jLabel = new JLabel("Enter file path: ");
         jLabel.setDisplayedMnemonic('p');
         final JTextField textField = new JTextField(40);
+
         jLabel.setLabelFor(textField);
+        final JTextField component = new JTextField("aaaaaaassffsś");
         final JTextArea jTextArea = new JTextArea(4, 40);
+        jTextArea.setEditable(true);
         jTextArea.setBorder(BorderFactory.createTitledBorder("Element description:"));
         SuggestionSource<File> suggestionSource = new StringSuggestionSource();
 
@@ -56,10 +60,24 @@ public class TestSuggestions {
 
           @Override
           public void selected(File value) {
-            textField.setText(value.getAbsolutePath());
+            System.out.printf("%n selected0 %d=>%d (\"%s\")%n", textField.getSelectionStart(), textField.getSelectionEnd(), textField.getSelectedText());
+
+//            textField.setText(value.getAbsolutePath());
+            try {
+              textField.getDocument().remove(0, textField.getText().length());
+
+              textField.getDocument().insertString(0, value.getAbsolutePath(), null);
+            } catch (BadLocationException e) {
+              e.printStackTrace();
+            }
+            textField.setCaretPosition(textField.getText().length());
+            System.out.printf(" selected1 %d=>%d (\"%s\")%n", textField.getSelectionStart(), textField.getSelectionEnd(), textField.getSelectedText());
+
             jTextArea.setText("Type: " + (value.isDirectory() ? "Folder" : "File"));
+//            component.setText(value.getAbsolutePath());
           }
         };
+
 
         SuggestDecorator.decorate(textField, suggestionSource, suggestionRenderer, selectionListener);
 
@@ -68,9 +86,9 @@ public class TestSuggestions {
         toolBar.add(jLabel);
         toolBar.add(textField);
 
-
         jPanel.add(toolBar, BorderLayout.NORTH);
         jPanel.add(jTextArea, BorderLayout.CENTER);
+        jPanel.add(component, BorderLayout.SOUTH);
         contentPane.add(jPanel);
 
         frame.pack();

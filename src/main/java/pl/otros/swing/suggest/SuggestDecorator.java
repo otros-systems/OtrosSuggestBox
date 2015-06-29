@@ -18,13 +18,31 @@ package pl.otros.swing.suggest;
 
 import javax.swing.*;
 import javax.swing.text.Document;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 
 public class SuggestDecorator {
 
-  public static <T> void decorate(JTextField textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer, SelectionListener<T> selectionListener) {
+  public static <T> void decorate(final JTextField textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer, SelectionListener<T> selectionListener) {
     Document document = textField.getDocument();
     SuggestionDocumentListener<? extends T> listener = new SuggestionDocumentListener<T>(textField, suggestionSource, suggestionRenderer, selectionListener);
     document.addDocumentListener(listener);
+    textField.addFocusListener(new FocusAdapter() {
+      @Override
+      public void focusGained(FocusEvent e) {
+        //do not select all on OSX after suggestion is selected
+        if (e.getOppositeComponent() == null) {
+          SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+              textField.select(0, 0);
+              textField.setCaretPosition(textField.getText().length());
+            }
+          });
+        }
+      }
+
+    });
 
   }
 }
