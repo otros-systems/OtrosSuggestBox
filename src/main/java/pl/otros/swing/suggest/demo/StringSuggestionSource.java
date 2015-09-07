@@ -16,13 +16,12 @@
 
 package pl.otros.swing.suggest.demo;
 
+import pl.otros.swing.suggest.SuggestionQuery;
 import pl.otros.swing.suggest.SuggestionSource;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -35,8 +34,9 @@ import java.util.List;
 class StringSuggestionSource implements SuggestionSource<File> {
 
   @Override
-  public List<File> getSuggestions(String value) {
-    ArrayList<File> list = new ArrayList<File>();
+  public List<File> getSuggestions(SuggestionQuery query) {
+    String value = query.getValue();
+    ArrayList<File> list = new ArrayList<>();
     if (value.length() == 0) {
       getFilesRoot(list);
       return list;
@@ -47,28 +47,20 @@ class StringSuggestionSource implements SuggestionSource<File> {
 
     File parentFile = f.isDirectory() ? f : f.getParentFile();
     if (parentFile != null) {
-      File[] list1 = parentFile.listFiles(new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-          return name.startsWith(fileName) || f.isDirectory();
-        }
-      });
+      File[] list1 = parentFile.listFiles((dir, name) -> name.startsWith(fileName) || f.isDirectory());
       if (list1 != null) {
         Collections.addAll(list, list1);
       }
     }
-    Collections.sort(list, new Comparator<File>() {
-      @Override
-      public int compare(File o1, File o2) {
-        if (o1.isDirectory() && o2.isDirectory() || !o1.isDirectory() && !o2.isDirectory()) {
-          return o1.getName().compareTo(o2.getName());
-        } else if (o1.isDirectory()) {
-          return -1;
-        } else if (o2.isDirectory()) {
-          return 1;
-        }
-        return 0;
+    Collections.sort(list, (o1, o2) -> {
+      if (o1.isDirectory() && o2.isDirectory() || !o1.isDirectory() && !o2.isDirectory()) {
+        return o1.getName().compareTo(o2.getName());
+      } else if (o1.isDirectory()) {
+        return -1;
+      } else if (o2.isDirectory()) {
+        return 1;
       }
+      return 0;
     });
     return list;
   }

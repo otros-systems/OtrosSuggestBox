@@ -16,18 +16,18 @@
 
 package pl.otros.swing.suggest;
 
+import javax.swing.*;
+import javax.swing.text.Document;
+import javax.swing.text.JTextComponent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.text.Document;
-
 public class SuggestDecorator {
 
-  public static <T> void decorate(final JTextField textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer, SelectionListener<T> selectionListener) {
+  public static <T> void decorate(final JTextComponent textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer, SelectionListener<T>
+          selectionListener) {
     Document document = textField.getDocument();
-    SuggestionDocumentListener<? extends T> listener = new SuggestionDocumentListener<T>(textField, suggestionSource, suggestionRenderer, selectionListener);
+    SuggestionDocumentListener<? extends T> listener = new SuggestionDocumentListener<>(textField, suggestionSource, suggestionRenderer, selectionListener);
     document.addDocumentListener(listener);
     textField.addFocusListener(new FocusAdapter() {
       @Override
@@ -42,13 +42,10 @@ public class SuggestDecorator {
 
   }
 
-  static void clearTextFieldSelectionAsync(final JTextField textField) {
-    SwingUtilities.invokeLater(new Runnable() {
-      @Override
-      public void run() {
-        textField.select(0, 0);
-        textField.setCaretPosition(textField.getText().length());
-      }
+  static void clearTextFieldSelectionAsync(final JTextComponent textField) {
+    SwingUtilities.invokeLater(() -> {
+      textField.select(0, 0);
+      textField.setCaretPosition(textField.getText().length());
     });
   }
 }

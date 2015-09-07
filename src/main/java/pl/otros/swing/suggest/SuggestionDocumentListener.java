@@ -16,37 +16,15 @@
 
 package pl.otros.swing.suggest;
 
-import java.awt.Component;
-import java.awt.GridLayout;
-import java.awt.Toolkit;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.List;
-
-import javax.swing.AbstractAction;
-import javax.swing.ActionMap;
-import javax.swing.BorderFactory;
+import javax.swing.*;
 import javax.swing.FocusManager;
-import javax.swing.InputMap;
-import javax.swing.JComponent;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.JWindow;
-import javax.swing.KeyStroke;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.JTextComponent;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.List;
 
 class SuggestionDocumentListener<T> implements DocumentListener {
 
@@ -54,7 +32,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
   private static final Object DOWN_ACTION = "Down action";
   private final JPanel suggestionPanel;
   private SuggestionRenderer<T> suggestionRenderer;
-  private JTextField textField;
+  private JTextComponent textComponent;
   private SuggestionSource<T> suggestionSource;
   private JWindow suggestionWindow;
   private SelectionListener<T> selectionListener;
@@ -66,8 +44,9 @@ class SuggestionDocumentListener<T> implements DocumentListener {
   private JScrollPane suggestionScrollPane;
 
   @SuppressWarnings("serial")
-  public SuggestionDocumentListener(final JTextField textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer, SelectionListener<T> selectionListener) {
-    this.textField = textField;
+  public SuggestionDocumentListener(final JTextComponent textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer,
+                                    SelectionListener<T> selectionListener) {
+    this.textComponent = textField;
     this.suggestionSource = suggestionSource;
     this.suggestionRenderer = suggestionRenderer;
     this.selectionListener = selectionListener;
@@ -115,14 +94,15 @@ class SuggestionDocumentListener<T> implements DocumentListener {
 
     };
     textField.addFocusListener(hideSuggestionFocusAdapter);
+    textField.addCaretListener(e -> makeSuggestions());
   }
 
 
   private void lazyInit() {
-    Window windowAncestor = SwingUtilities.getWindowAncestor(textField);
+    Window windowAncestor = SwingUtilities.getWindowAncestor(textComponent);
     suggestionWindow = new JWindow(windowAncestor);
     windowAncestor.addComponentListener(windowsSizeListener);
-    textField.addComponentListener(windowsSizeListener);
+    textComponent.addComponentListener(windowsSizeListener);
     suggestionScrollPane = new JScrollPane(suggestionPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
     suggestionWindow.getContentPane().add(suggestionScrollPane);
     suggestionWindow.addFocusListener(hideSuggestionFocusAdapter);
@@ -144,16 +124,25 @@ class SuggestionDocumentListener<T> implements DocumentListener {
     makeSuggestions();
   }
 
+
+
   void makeSuggestions() {
-    if (SwingUtilities.getWindowAncestor(textField) == null) {
+    SwingUtilities.invokeLater(this::makeSuggestions1);
+  }
+    void makeSuggestions1() {
+    if (SwingUtilities.getWindowAncestor(textComponent) == null) {
       return;
     }
     if (!fullyInitialized) {
       lazyInit();
     }
 
-    final String text = textField.getText();
-    List<T> suggestions = suggestionSource.getSuggestions(text);
+    final String text = textComponent.getText();
+    final int caretPosition = textComponent.getCaretPosition();
+    final int selectionEnd = textComponent.getSelectionEnd();
+    final int selectionStart = textComponent.getSelectionStart();
+    final SuggestionQuery query = new SuggestionQuery(text, caretPosition, selectionStart, selectionEnd);
+    List<T> suggestions = suggestionSource.getSuggestions(query);
     int suggestionsSize = suggestions.size();
     if (suggestionsSize == 0) {
       suggestionWindow.setVisible(false);
@@ -164,8 +153,8 @@ class SuggestionDocumentListener<T> implements DocumentListener {
       suggestionComponents = new JComponent[suggestionsSize];
       int index = 0;
       for (final T suggestion : suggestions) {
-        final boolean first = index ==0;
-        final boolean last = index == suggestionsSize-1;
+        final boolean first = index == 0;
+        final boolean last = index == suggestionsSize - 1;
         final JComponent suggestionComponent = suggestionRenderer.getSuggestionComponent(suggestion);
         suggestionComponents[index++] = suggestionComponent;
         suggestionComponent.setFocusable(true);
@@ -176,36 +165,33 @@ class SuggestionDocumentListener<T> implements DocumentListener {
           public void keyPressed(KeyEvent e) {
             final int keyCode = e.getKeyCode();
             if (keyCode == KeyEvent.VK_UP && first) {
-              textField.requestFocus();
-              SuggestDecorator.clearTextFieldSelectionAsync(textField);
-            }else if (keyCode == KeyEvent.VK_UP) {
+              textComponent.requestFocus();
+              SuggestDecorator.clearTextFieldSelectionAsync(textComponent);
+            } else if (keyCode == KeyEvent.VK_UP) {
               FocusManager.getCurrentManager().focusPreviousComponent();
             } else if (keyCode == KeyEvent.VK_DOWN && !last) {
               FocusManager.getCurrentManager().focusNextComponent();
             } else if (keyCode == KeyEvent.VK_ENTER) {
               suggestionSelected(suggestion);
             } else if (keyCode == KeyEvent.VK_ESCAPE) {
-              textField.requestFocusInWindow();
+              textComponent.requestFocusInWindow();
               hideSuggestions();
             }
           }
 
           @Override
           public void keyTyped(KeyEvent e) {
-            textField.dispatchEvent(e);
-            textField.requestFocus();
+            textComponent.dispatchEvent(e);
+            textComponent.requestFocus();
           }
         });
         suggestionComponent.addFocusListener(new FocusListener() {
           @Override
           public void focusGained(final FocusEvent e) {
             highlightSuggestion(suggestionComponent);
-            SwingUtilities.invokeLater(new Runnable() {
-              @Override
-              public void run() {
-                final Component component = e.getComponent();
-                suggestionScrollPane.scrollRectToVisible(component.getBounds());
-              }
+            SwingUtilities.invokeLater(() -> {
+              final Component component = e.getComponent();
+              suggestionScrollPane.scrollRectToVisible(component.getBounds());
             });
 
           }
@@ -268,15 +254,27 @@ class SuggestionDocumentListener<T> implements DocumentListener {
 
   protected void suggestionSelected(T suggestion) {
     selectionListener.selected(suggestion);
-    textField.requestFocus();
+    textComponent.requestFocus();
   }
 
   private void setSuggestionWindowLocation() {
     suggestionWindow.pack();
-    int width = Math.max(textField.getWidth(), suggestionWindow.getWidth());
-    suggestionWindow.setSize(width, (int) Math.min(suggestionWindow.getHeight(), Toolkit.getDefaultToolkit().getScreenSize().getHeight() / 2));
-    int x = (int) textField.getLocationOnScreen().getX();
-    int y = (int) (textField.getLocationOnScreen().getY() + textField.getHeight());
-    suggestionWindow.setLocation(x, y);
+    if (textComponent instanceof JTextField) {
+      int width = Math.max(textComponent.getWidth(), suggestionWindow.getWidth());
+      suggestionWindow.setSize(width, (int) Math.min(suggestionWindow.getHeight(), Toolkit.getDefaultToolkit().getScreenSize().getHeight() / 2));
+      int x = (int) textComponent.getLocationOnScreen().getX();
+      int y = (int) (textComponent.getLocationOnScreen().getY() + textComponent.getHeight());
+      suggestionWindow.setLocation(x, y);
+    } else {
+      try {
+        final int caretPosition = Math.min(textComponent.getText().length(), textComponent.getCaretPosition());
+        final Rectangle rectangle = textComponent.modelToView(caretPosition);
+        final Point p = new Point(rectangle.x, rectangle.y+rectangle.height);
+        SwingUtilities.convertPointToScreen(p,textComponent);
+        suggestionWindow.setLocation(p.x, p.y);
+      } catch (BadLocationException e) {
+        e.printStackTrace();
+      }
+    }
   }
 }

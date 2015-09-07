@@ -20,5 +20,5 @@ import java.util.List;
 
 public interface SuggestionSource<T> {
 
-  public List<T> getSuggestions(String value);
+  List<T> getSuggestions(SuggestionQuery query);
 }

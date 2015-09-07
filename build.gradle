@@ -23,13 +23,13 @@ apply plugin: 'application'
 apply plugin: 'maven-publish'
 
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 mainClassName = "pl.otros.swing.suggest.demo.TestSuggestions"
 applicationName = "SuggestBoxDemo"
 
 
-version = "0.2"
+version = "0.3"
 group = 'pl.otros.swing.suggest'
 
 // custom tasks for creating source/javadoc jars
