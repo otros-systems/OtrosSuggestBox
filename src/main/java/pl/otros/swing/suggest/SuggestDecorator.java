@@ -16,10 +16,12 @@
 
 package pl.otros.swing.suggest;
 
-import javax.swing.*;
-import javax.swing.text.Document;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.text.Document;
 
 public class SuggestDecorator {
 
@@ -32,17 +34,21 @@ public class SuggestDecorator {
       public void focusGained(FocusEvent e) {
         //do not select all on OSX after suggestion is selected
         if (e.getOppositeComponent() == null) {
-          SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-              textField.select(0, 0);
-              textField.setCaretPosition(textField.getText().length());
-            }
-          });
+          clearTextFieldSelectionAsync(textField);
         }
       }
 
     });
 
+  }
+
+  static void clearTextFieldSelectionAsync(final JTextField textField) {
+    SwingUtilities.invokeLater(new Runnable() {
+      @Override
+      public void run() {
+        textField.select(0, 0);
+        textField.setCaretPosition(textField.getText().length());
+      }
+    });
   }
 }

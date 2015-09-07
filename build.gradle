@@ -14,14 +14,96 @@
  *    limitations under the License.
  */
 
+plugins {
+    id "com.jfrog.bintray" version "1.1"
+}
+
 apply plugin: 'java'
 apply plugin: 'application'
+apply plugin: 'maven-publish'
 
 
-sourceCompatibility = 1.6
-targetCompatibility = 1.6
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
 mainClassName = "pl.otros.swing.suggest.demo.TestSuggestions"
 applicationName = "SuggestBoxDemo"
 
 
-version = "0.0.1-SNAPSHOT"
+version = "0.2"
+group = 'pl.otros.swing.suggest'
+
+// custom tasks for creating source/javadoc jars
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+// add javadoc/source jar tasks as artifacts
+artifacts {
+    archives sourcesJar, javadocJar
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+        }
+    }
+}
+
+
+bintray {
+    user = bintray_user
+    key = bintray_api_key
+
+//        configurations = ['deployables'] //When uploading configuration files
+    // - OR -
+    publications = ['mavenJava'] //When uploading Maven-based publication files
+    // - AND/OR -
+//        filesSpec { //When uploading any arbitrary files ('filesSpec' is a standard Gradle CopySpec)
+//            from 'arbitrary-files'
+//            into 'standalone_files/level1'
+//            rename '(.+)\\.(.+)', '$1-suffix.$2'
+//        }
+    dryRun = false //Whether to run this as dry-run, without deploying
+    publish = true //If version should be auto published after an upload
+    pkg {
+//            repo = 'myrepo'
+        repo = 'maven'
+//            userOrg = 'myorg' //An optional organization name when the repo belongs to one of the user's orgs
+        name = 'otrossuggestbox'
+        desc = 'OtrosSuggestBox - swing extension to JTextField'
+        websiteUrl = 'https://github.com/otros-systems/OtrosSuggestBox'
+        issueTrackerUrl = 'https://github.com/otros-systems/OtrosSuggestBox/issues'
+        vcsUrl = 'https://github.com/otros-systems/OtrosSuggestBox.git'
+        licenses = ['Apache-2.0']
+        labels = ['swing', 'suggestbox']
+        publicDownloadNumbers = true
+        attributes= ['a': ['ay1', 'ay2'], 'b': ['bee'], c: 'cee'] //Optional package-level attributes
+        //Optional version descriptor
+        version {
+            name = project.version //Bintray logical version name
+            desc = 'optional, version-specific description'
+//                released  = 'optional, date of the version release' //2 possible values: date in the format of 'yyyy-MM-dd'T'HH:mm:ss.SSSZZ' OR a java.util.Date instance
+//                vcsTag = '1.3.0'
+//                attributes = ['gradle-plugin': 'com.use.less:com.use.less.gradle:gradle-useless-plugin'] //Optional version-level attributes
+//                gpg {
+//                    sign = true //Determines whether to GPG sign the files. The default is false
+//                    passphrase = 'passphrase' //Optional. The passphrase for GPG signing'
+//                }
+            mavenCentralSync {
+                sync = false //Optional (true by default). Determines whether to sync the version to Maven Central.
+                user = 'userToken' //OSS user token
+                password = 'paasword' //OSS user password
+                close = '1' //Optional property. By default the staging repository is closed and artifacts are released to Maven Central. You can optionally turn this behaviour off (by puting 0 as value) and release the version manually.
+            }
+        }
+    }
+}

@@ -16,13 +16,37 @@
 
 package pl.otros.swing.suggest;
 
-import javax.swing.*;
+import java.awt.Component;
+import java.awt.GridLayout;
+import java.awt.Toolkit;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.List;
+
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
 import javax.swing.FocusManager;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.JWindow;
+import javax.swing.KeyStroke;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.List;
 
 class SuggestionDocumentListener<T> implements DocumentListener {
 
@@ -140,6 +164,8 @@ class SuggestionDocumentListener<T> implements DocumentListener {
       suggestionComponents = new JComponent[suggestionsSize];
       int index = 0;
       for (final T suggestion : suggestions) {
+        final boolean first = index ==0;
+        final boolean last = index == suggestionsSize-1;
         final JComponent suggestionComponent = suggestionRenderer.getSuggestionComponent(suggestion);
         suggestionComponents[index++] = suggestionComponent;
         suggestionComponent.setFocusable(true);
@@ -148,13 +174,17 @@ class SuggestionDocumentListener<T> implements DocumentListener {
         suggestionComponent.addKeyListener(new KeyAdapter() {
           @Override
           public void keyPressed(KeyEvent e) {
-            if (e.getKeyCode() == KeyEvent.VK_UP) {
+            final int keyCode = e.getKeyCode();
+            if (keyCode == KeyEvent.VK_UP && first) {
+              textField.requestFocus();
+              SuggestDecorator.clearTextFieldSelectionAsync(textField);
+            }else if (keyCode == KeyEvent.VK_UP) {
               FocusManager.getCurrentManager().focusPreviousComponent();
-            } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+            } else if (keyCode == KeyEvent.VK_DOWN && !last) {
               FocusManager.getCurrentManager().focusNextComponent();
-            } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+            } else if (keyCode == KeyEvent.VK_ENTER) {
               suggestionSelected(suggestion);
-            } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            } else if (keyCode == KeyEvent.VK_ESCAPE) {
               textField.requestFocusInWindow();
               hideSuggestions();
             }
@@ -168,8 +198,16 @@ class SuggestionDocumentListener<T> implements DocumentListener {
         });
         suggestionComponent.addFocusListener(new FocusListener() {
           @Override
-          public void focusGained(FocusEvent e) {
+          public void focusGained(final FocusEvent e) {
             highlightSuggestion(suggestionComponent);
+            SwingUtilities.invokeLater(new Runnable() {
+              @Override
+              public void run() {
+                final Component component = e.getComponent();
+                suggestionScrollPane.scrollRectToVisible(component.getBounds());
+              }
+            });
+
           }
 
           @Override
@@ -229,8 +267,8 @@ class SuggestionDocumentListener<T> implements DocumentListener {
   }
 
   protected void suggestionSelected(T suggestion) {
-    textField.requestFocus();
     selectionListener.selected(suggestion);
+    textField.requestFocus();
   }
 
   private void setSuggestionWindowLocation() {
