@@ -24,6 +24,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
 import java.util.List;
 
 class SuggestionDocumentListener<T> implements DocumentListener {
@@ -42,6 +43,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
   private final ComponentAdapter windowsSizeListener;
   private final FocusAdapter hideSuggestionFocusAdapter;
   private JScrollPane suggestionScrollPane;
+  private List<T> lastSuggestions = new ArrayList<>();
 
   @SuppressWarnings("serial")
   public SuggestionDocumentListener(final JTextComponent textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer,
@@ -111,7 +113,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
 
   @Override
   public void insertUpdate(DocumentEvent e) {
-    makeSuggestions();
+//    makeSuggestions();
   }
 
   @Override
@@ -125,11 +127,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
   }
 
 
-
   void makeSuggestions() {
-    SwingUtilities.invokeLater(this::makeSuggestions1);
-  }
-    void makeSuggestions1() {
     if (SwingUtilities.getWindowAncestor(textComponent) == null) {
       return;
     }
@@ -144,6 +142,11 @@ class SuggestionDocumentListener<T> implements DocumentListener {
     final SuggestionQuery query = new SuggestionQuery(text, caretPosition, selectionStart, selectionEnd);
     List<T> suggestions = suggestionSource.getSuggestions(query);
     int suggestionsSize = suggestions.size();
+    final ArrayList<T> diffSuggestions = new ArrayList<>(suggestions);
+    lastSuggestions.stream().forEach(diffSuggestions::remove);
+    if (diffSuggestions.isEmpty() && suggestions.size() == lastSuggestions.size()){
+      return;
+    }
     if (suggestionsSize == 0) {
       suggestionWindow.setVisible(false);
     } else {
@@ -221,6 +224,9 @@ class SuggestionDocumentListener<T> implements DocumentListener {
         });
         suggestionPanel.add(suggestionComponent);
       }
+
+      lastSuggestions = suggestions;
+
       suggestionWindow.pack();
       setSuggestionWindowLocation();
       if (!suggestionWindow.isVisible()) {

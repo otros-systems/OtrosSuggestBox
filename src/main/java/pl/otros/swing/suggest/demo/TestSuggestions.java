@@ -70,7 +70,7 @@ public class TestSuggestions {
       final SuggestionSource<String> suggestionSource1 = query -> {
         final int caretLocation = query.getCaretLocation();
         final String value = query.getValue();
-        if (value.length() > 0  && Character.isUpperCase(value.charAt(caretLocation-1))) {
+        if (value.length() > 0  && Character.isUpperCase(value.charAt(Math.max(caretLocation-1,0)))) {
           return Arrays.asList("1._", "2.!", "3.!D");
         } else {
           return Collections.emptyList();
