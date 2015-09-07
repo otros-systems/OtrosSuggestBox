@@ -45,7 +45,7 @@ public class TestSuggestions {
       final JTextField textField = new JTextField(40);
 
       jLabel.setLabelFor(textField);
-      final JTextField component = new JTextField("aaaaaaassffsś");
+      final JTextField component = new JTextField("");
       final JTextArea jTextArea = new JTextArea(4, 40);
       jTextArea.setEditable(true);
       jTextArea.setBorder(BorderFactory.createTitledBorder("Element description:"));
