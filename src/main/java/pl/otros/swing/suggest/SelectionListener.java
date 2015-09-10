@@ -18,6 +18,6 @@ package pl.otros.swing.suggest;
 
 public interface SelectionListener<T> {
 
-  public void selected(T value);
+  void selected(SuggestionResult<T> value);
 
 }

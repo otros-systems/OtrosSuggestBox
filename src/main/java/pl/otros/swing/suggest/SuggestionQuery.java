@@ -6,8 +6,8 @@ public class SuggestionQuery {
   private int selectionStart;
   private int selectionEnd;
 
-  public SuggestionQuery(String value, int carretLocation) {
-    this(value, carretLocation, -1, -1);
+  public SuggestionQuery(String value, int caretLocation) {
+    this(value, caretLocation, -1, -1);
   }
 
   public SuggestionQuery(String value, int caretLocation, int selectionStart, int selectionEnd) {

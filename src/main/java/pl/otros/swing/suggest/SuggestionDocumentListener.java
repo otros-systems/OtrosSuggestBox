@@ -30,7 +30,8 @@ import java.util.List;
 class SuggestionDocumentListener<T> implements DocumentListener {
 
 
-  private static final Object DOWN_ACTION = "Down action";
+  private static final String FOCUS_TO_SUGGESTION = "Focus to suggestion";
+  private static final String HIDE_SUGGESTION = "hide to suggestion";
   private final JPanel suggestionPanel;
   private SuggestionRenderer<T> suggestionRenderer;
   private JTextComponent textComponent;
@@ -44,11 +45,14 @@ class SuggestionDocumentListener<T> implements DocumentListener {
   private final FocusAdapter hideSuggestionFocusAdapter;
   private JScrollPane suggestionScrollPane;
   private List<T> lastSuggestions = new ArrayList<>();
+  private final AbstractAction focusToSuggestionAction;
+  private final KeyStroke toSuggestionKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0);
+  private final KeyStroke hideSuggestionKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0);
 
   @SuppressWarnings("serial")
-  public SuggestionDocumentListener(final JTextComponent textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer,
+  public SuggestionDocumentListener(final JTextComponent textComponent, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer,
                                     SelectionListener<T> selectionListener) {
-    this.textComponent = textField;
+    this.textComponent = textComponent;
     this.suggestionSource = suggestionSource;
     this.suggestionRenderer = suggestionRenderer;
     this.selectionListener = selectionListener;
@@ -67,19 +71,22 @@ class SuggestionDocumentListener<T> implements DocumentListener {
 
     };
     suggestionPanel = new JPanel();
-    InputMap inputMap = textField.getInputMap();
-    ActionMap actionMap = textField.getActionMap();
-    inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), DOWN_ACTION);
-    actionMap.put(DOWN_ACTION, new AbstractAction() {
+
+    focusToSuggestionAction = new AbstractAction() {
 
       @Override
       public void actionPerformed(ActionEvent e) {
-        if (suggestionWindow != null && !suggestionWindow.isVisible()) {
-          makeSuggestions();
-        }
         if (suggestionComponents != null && suggestionComponents.length > 0) {
           suggestionComponents[0].requestFocus();
         }
+      }
+    };
+    textComponent.getActionMap().put(FOCUS_TO_SUGGESTION, focusToSuggestionAction);
+    textComponent.getInputMap().put(toSuggestionKeyStroke, FOCUS_TO_SUGGESTION);
+    textComponent.getActionMap().put(HIDE_SUGGESTION, new AbstractAction() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        hideSuggestions();
       }
     });
 
@@ -88,15 +95,15 @@ class SuggestionDocumentListener<T> implements DocumentListener {
       @Override
       public void focusLost(FocusEvent e) {
         Component oppositeComponent = e.getOppositeComponent();
-        boolean focusOwner = textField.isFocusOwner();
+        boolean focusOwner = textComponent.isFocusOwner();
         if (!focusOwner && !(oppositeComponent != null && oppositeComponent.getParent() == suggestionPanel)) {
           hideSuggestions();
         }
       }
 
     };
-    textField.addFocusListener(hideSuggestionFocusAdapter);
-    textField.addCaretListener(e -> makeSuggestions());
+    textComponent.addFocusListener(hideSuggestionFocusAdapter);
+    textComponent.addCaretListener(e -> makeSuggestions());
   }
 
 
@@ -109,6 +116,21 @@ class SuggestionDocumentListener<T> implements DocumentListener {
     suggestionWindow.getContentPane().add(suggestionScrollPane);
     suggestionWindow.addFocusListener(hideSuggestionFocusAdapter);
     fullyInitialized = true;
+
+    InputMap inputMap = textComponent.getInputMap();
+    suggestionWindow.addComponentListener(new ComponentAdapter() {
+      @Override
+      public void componentHidden(ComponentEvent e) {
+        inputMap.remove(toSuggestionKeyStroke);
+        inputMap.remove(hideSuggestionKeyStroke);
+      }
+
+      @Override
+      public void componentShown(ComponentEvent e) {
+        inputMap.put(toSuggestionKeyStroke, FOCUS_TO_SUGGESTION);
+        inputMap.put(hideSuggestionKeyStroke, HIDE_SUGGESTION);
+      }
+    });
   }
 
   @Override
@@ -134,7 +156,6 @@ class SuggestionDocumentListener<T> implements DocumentListener {
     if (!fullyInitialized) {
       lazyInit();
     }
-
     final String text = textComponent.getText();
     final int caretPosition = textComponent.getCaretPosition();
     final int selectionEnd = textComponent.getSelectionEnd();
@@ -144,9 +165,13 @@ class SuggestionDocumentListener<T> implements DocumentListener {
     int suggestionsSize = suggestions.size();
     final ArrayList<T> diffSuggestions = new ArrayList<>(suggestions);
     lastSuggestions.stream().forEach(diffSuggestions::remove);
-    if (diffSuggestions.isEmpty() && suggestions.size() == lastSuggestions.size()){
+    if (diffSuggestions.isEmpty() && suggestions.size() == lastSuggestions.size()) {
+      if (suggestionWindow.isVisible()){
+        setSuggestionWindowLocation();
+      }
       return;
     }
+    lastSuggestions = new ArrayList<>();
     if (suggestionsSize == 0) {
       suggestionWindow.setVisible(false);
     } else {
@@ -175,7 +200,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
             } else if (keyCode == KeyEvent.VK_DOWN && !last) {
               FocusManager.getCurrentManager().focusNextComponent();
             } else if (keyCode == KeyEvent.VK_ENTER) {
-              suggestionSelected(suggestion);
+              suggestionSelected(suggestion, query);
             } else if (keyCode == KeyEvent.VK_ESCAPE) {
               textComponent.requestFocusInWindow();
               hideSuggestions();
@@ -208,7 +233,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
 
           @Override
           public void mouseClicked(MouseEvent e) {
-            suggestionSelected(suggestion);
+            suggestionSelected(suggestion, query);
           }
 
           @Override
@@ -258,8 +283,9 @@ class SuggestionDocumentListener<T> implements DocumentListener {
     }
   }
 
-  protected void suggestionSelected(T suggestion) {
-    selectionListener.selected(suggestion);
+  protected void suggestionSelected(T suggestion, SuggestionQuery query) {
+    final SuggestionResult<T> result = new SuggestionResult<>(suggestion, query, textComponent);
+    selectionListener.selected(result);
     textComponent.requestFocus();
   }
 
@@ -275,8 +301,8 @@ class SuggestionDocumentListener<T> implements DocumentListener {
       try {
         final int caretPosition = Math.min(textComponent.getText().length(), textComponent.getCaretPosition());
         final Rectangle rectangle = textComponent.modelToView(caretPosition);
-        final Point p = new Point(rectangle.x, rectangle.y+rectangle.height);
-        SwingUtilities.convertPointToScreen(p,textComponent);
+        final Point p = new Point(rectangle.x, rectangle.y + rectangle.height);
+        SwingUtilities.convertPointToScreen(p, textComponent);
         suggestionWindow.setLocation(p.x, p.y);
       } catch (BadLocationException e) {
         e.printStackTrace();

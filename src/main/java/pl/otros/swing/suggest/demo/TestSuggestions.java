@@ -26,8 +26,11 @@ import javax.swing.text.BadLocationException;
 import java.awt.*;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
+
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 
 public class TestSuggestions {
 
@@ -56,12 +59,12 @@ public class TestSuggestions {
       SelectionListener<File> selectionListener = value -> {
         try {
           textField.getDocument().remove(0, textField.getText().length());
-          textField.getDocument().insertString(0, value.getAbsolutePath(), null);
+          textField.getDocument().insertString(0, value.getValue().getAbsolutePath(), null);
         } catch (BadLocationException e) {
           e.printStackTrace();
         }
         textField.setCaretPosition(textField.getText().length());
-        jTextArea.setText("Type: " + (value.isDirectory() ? "Folder" : "File"));
+        jTextArea.setText("Type: " + (value.getValue().isDirectory() ? "Folder" : "File"));
       };
 
       SuggestDecorator.decorate(textField, suggestionSource, suggestionRenderer, selectionListener);
@@ -70,21 +73,26 @@ public class TestSuggestions {
       final SuggestionSource<String> suggestionSource1 = query -> {
         final int caretLocation = query.getCaretLocation();
         final String value = query.getValue();
-        if (value.length() > 0  && Character.isUpperCase(value.charAt(Math.max(caretLocation-1,0)))) {
-          return Arrays.asList("1._", "2.!", "3.!D");
+        if (value.length() > 0 && Character.isUpperCase(value.charAt(min(max(caretLocation - 1, 0), value.length() - 1)))) {
+          final char charAt = value.charAt(min(max(caretLocation - 1, 0), value.length() - 1));
+          ArrayList result = new ArrayList();
+          for (char i = (char) (charAt + 1); i <= 'Z'; i++) {
+            result.add(Character.toString(i));
+          }
+          return result;
         } else {
           return Collections.emptyList();
         }
       };
 
 
-      final SuggestionRenderer<String> suggestionRenderer1 = suggestion -> new JLabel(suggestion, iconForString(suggestion),SwingConstants.CENTER);
+      final SuggestionRenderer<String> suggestionRenderer1 = suggestion -> new JLabel(suggestion, iconForString(suggestion), SwingConstants.CENTER);
       final SelectionListener<String> selectionListener1 = value -> {
         final int caretPosition = jTextArea.getCaretPosition();
         String source = jTextArea.getText();
-        String newValue = source.substring(0, caretPosition) + value + source.substring(caretPosition);
+        String newValue = source.substring(0, caretPosition) + value.getValue() + source.substring(caretPosition);
         jTextArea.setText(newValue);
-        jTextArea.setCaretPosition(caretPosition + value.length());
+        jTextArea.setCaretPosition(caretPosition + value.getValue().length());
       };
       SuggestDecorator.decorate(jTextArea, suggestionSource1, suggestionRenderer1, selectionListener1);
 
@@ -107,22 +115,24 @@ public class TestSuggestions {
 
   }
 
-  private static Icon iconForString(String s){
-    float h = ((float)s.hashCode()%255)/255;
+  private static Icon iconForString(String s) {
+    final int hashCode = s.hashCode() * 1001;
+    float h = ((float) hashCode % 255) / 255;
     final Color hsbColor = Color.getHSBColor(h, 1, 1);
-    return new Icon(){
+    return new Icon() {
 
       @Override
       public void paintIcon(Component c, Graphics g, int x, int y) {
         g.setColor(hsbColor);
-        if (s.startsWith("1")){
-          g.fillOval(0,0,16,16);
-        } else if (s.startsWith("2")){
-          g.fillRoundRect(4,4,8,8,4,4);
-        } else if (s.startsWith("2")){
-          g.drawPolygon(new int[]{2,2,14},new int[]{2,14,14},3);
+        final int i = hashCode % 4;
+        if (i == 0) {
+          g.fillOval(0, 0, 16, 16);
+        } else if (i == 1) {
+          g.fillRoundRect(4, 4, 8, 8, 4, 4);
+        } else if (i == 2) {
+          g.drawPolygon(new int[]{2, 2, 14}, new int[]{2, 14, 14}, 3);
         } else {
-          g.fillRect(3,3,10,5);
+          g.fillRect(3, 3, 10, 5);
         }
       }
 
