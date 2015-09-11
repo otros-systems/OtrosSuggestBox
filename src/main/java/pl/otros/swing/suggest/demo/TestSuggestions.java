@@ -16,10 +16,7 @@
 
 package pl.otros.swing.suggest.demo;
 
-import pl.otros.swing.suggest.SelectionListener;
-import pl.otros.swing.suggest.SuggestDecorator;
-import pl.otros.swing.suggest.SuggestionRenderer;
-import pl.otros.swing.suggest.SuggestionSource;
+import pl.otros.swing.suggest.*;
 
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
@@ -87,13 +84,7 @@ public class TestSuggestions {
 
 
       final SuggestionRenderer<String> suggestionRenderer1 = suggestion -> new JLabel(suggestion, iconForString(suggestion), SwingConstants.CENTER);
-      final SelectionListener<String> selectionListener1 = value -> {
-        final int caretPosition = jTextArea.getCaretPosition();
-        String source = jTextArea.getText();
-        String newValue = source.substring(0, caretPosition) + value.getValue() + source.substring(caretPosition);
-        jTextArea.setText(newValue);
-        jTextArea.setCaretPosition(caretPosition + value.getValue().length());
-      };
+      final SelectionListener<String> selectionListener1 = new StringInsertSuggestionListener();
       SuggestDecorator.decorate(jTextArea, suggestionSource1, suggestionRenderer1, selectionListener1);
 
       textField.setText(File.listRoots()[0].getAbsolutePath());
