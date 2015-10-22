@@ -37,7 +37,6 @@ public class SuggestDecorator {
           clearTextFieldSelectionAsync(textField);
         }
       }
-
     });
 
   }

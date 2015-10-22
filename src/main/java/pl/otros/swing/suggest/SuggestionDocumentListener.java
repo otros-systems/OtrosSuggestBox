@@ -26,6 +26,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 class SuggestionDocumentListener<T> implements DocumentListener {
 
@@ -45,9 +46,10 @@ class SuggestionDocumentListener<T> implements DocumentListener {
   private final FocusAdapter hideSuggestionFocusAdapter;
   private JScrollPane suggestionScrollPane;
   private List<T> lastSuggestions = new ArrayList<>();
-  private final AbstractAction focusToSuggestionAction;
   private final KeyStroke toSuggestionKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0);
   private final KeyStroke hideSuggestionKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0);
+  private Optional<DelayedSwingInvoke> delayedInvoke = Optional.empty();
+
 
   @SuppressWarnings("serial")
   public SuggestionDocumentListener(final JTextComponent textComponent, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer,
@@ -72,7 +74,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
     };
     suggestionPanel = new JPanel();
 
-    focusToSuggestionAction = new AbstractAction() {
+    AbstractAction focusToSuggestionAction = new AbstractAction() {
 
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -82,7 +84,6 @@ class SuggestionDocumentListener<T> implements DocumentListener {
       }
     };
     textComponent.getActionMap().put(FOCUS_TO_SUGGESTION, focusToSuggestionAction);
-    textComponent.getInputMap().put(toSuggestionKeyStroke, FOCUS_TO_SUGGESTION);
     textComponent.getActionMap().put(HIDE_SUGGESTION, new AbstractAction() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -103,7 +104,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
 
     };
     textComponent.addFocusListener(hideSuggestionFocusAdapter);
-    textComponent.addCaretListener(e -> makeSuggestions());
+    textComponent.addCaretListener(e -> submitMakeSuggestions());
   }
 
 
@@ -135,19 +136,34 @@ class SuggestionDocumentListener<T> implements DocumentListener {
 
   @Override
   public void insertUpdate(DocumentEvent e) {
-//    makeSuggestions();
+    submitMakeSuggestions();
   }
 
   @Override
   public void removeUpdate(DocumentEvent e) {
-    makeSuggestions();
+    submitMakeSuggestions();
   }
 
   @Override
   public void changedUpdate(DocumentEvent e) {
-    makeSuggestions();
+    submitMakeSuggestions();
   }
 
+
+  void submitMakeSuggestions(){
+    hideSuggestions();
+    delayedInvoke.ifPresent(DelayedSwingInvoke::stop);
+    final DelayedSwingInvoke delayedSwingInvoke = new DelayedSwingInvoke(400) {
+
+      @Override
+      protected void performActionHook() {
+        makeSuggestions();
+      }
+    };
+    delayedSwingInvoke.performAction();
+    delayedInvoke = Optional.of(delayedSwingInvoke);
+
+  }
 
   void makeSuggestions() {
     if (SwingUtilities.getWindowAncestor(textComponent) == null) {
@@ -156,7 +172,7 @@ class SuggestionDocumentListener<T> implements DocumentListener {
     if (!fullyInitialized) {
       lazyInit();
     }
-    final String text = textComponent.getText();
+    final String text = textComponent.getText().replaceAll("\r\n", "\n");
     final int caretPosition = textComponent.getCaretPosition();
     final int selectionEnd = textComponent.getSelectionEnd();
     final int selectionStart = textComponent.getSelectionStart();
@@ -168,8 +184,8 @@ class SuggestionDocumentListener<T> implements DocumentListener {
     if (diffSuggestions.isEmpty() && suggestions.size() == lastSuggestions.size()) {
       if (suggestionWindow.isVisible()){
         setSuggestionWindowLocation();
+        return;
       }
-      return;
     }
     lastSuggestions = new ArrayList<>();
     if (suggestionsSize == 0) {
@@ -309,4 +325,38 @@ class SuggestionDocumentListener<T> implements DocumentListener {
       }
     }
   }
+
+
+
+
+  private abstract class DelayedSwingInvoke {
+
+    protected long lastTextFieldEditTime = 0;
+    protected int actionDelay = 1000;
+    private Optional<Timer> timer = Optional.empty();
+
+    public DelayedSwingInvoke(int actionDelay) {
+      this.actionDelay = actionDelay;
+    }
+
+    public void performAction() {
+      lastTextFieldEditTime = System.currentTimeMillis();
+      Timer timer = new Timer(actionDelay, e -> {
+        if (System.currentTimeMillis() - lastTextFieldEditTime >= actionDelay) {
+          performActionHook();
+        }
+      });
+      timer.setRepeats(false);
+      timer.start();
+      this.timer = Optional.of(timer);
+    }
+
+    public void stop(){
+      timer.ifPresent(Timer::stop);
+    }
+
+    protected abstract void performActionHook();
+
+  }
+
 }

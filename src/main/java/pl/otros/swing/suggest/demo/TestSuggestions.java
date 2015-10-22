@@ -19,7 +19,6 @@ package pl.otros.swing.suggest.demo;
 import pl.otros.swing.suggest.*;
 
 import javax.swing.*;
-import javax.swing.text.BadLocationException;
 import java.awt.*;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -54,12 +53,7 @@ public class TestSuggestions {
       SuggestionRenderer<File> suggestionRenderer = new FileSuggestionRenderer();
 
       SelectionListener<File> selectionListener = value -> {
-        try {
-          textField.getDocument().remove(0, textField.getText().length());
-          textField.getDocument().insertString(0, value.getValue().getAbsolutePath(), null);
-        } catch (BadLocationException e) {
-          e.printStackTrace();
-        }
+        textField.setText(value.getValue().getAbsolutePath());
         textField.setCaretPosition(textField.getText().length());
         jTextArea.setText("Type: " + (value.getValue().isDirectory() ? "Folder" : "File"));
       };
@@ -67,14 +61,14 @@ public class TestSuggestions {
       SuggestDecorator.decorate(textField, suggestionSource, suggestionRenderer, selectionListener);
 
 
-      final SuggestionSource<String> suggestionSource1 = query -> {
+      final SuggestionSource<BasicSuggestion> suggestionSource1 = query -> {
         final int caretLocation = query.getCaretLocation();
         final String value = query.getValue();
         if (value.length() > 0 && Character.isUpperCase(value.charAt(min(max(caretLocation - 1, 0), value.length() - 1)))) {
           final char charAt = value.charAt(min(max(caretLocation - 1, 0), value.length() - 1));
-          ArrayList result = new ArrayList();
+          ArrayList<BasicSuggestion> result = new ArrayList<>();
           for (char i = (char) (charAt + 1); i <= 'Z'; i++) {
-            result.add(Character.toString(i));
+            result.add(new BasicSuggestion(Character.toString(i), Character.toString(i)));
           }
           return result;
         } else {
@@ -83,8 +77,8 @@ public class TestSuggestions {
       };
 
 
-      final SuggestionRenderer<String> suggestionRenderer1 = suggestion -> new JLabel(suggestion, iconForString(suggestion), SwingConstants.CENTER);
-      final SelectionListener<String> selectionListener1 = new StringInsertSuggestionListener();
+      final SuggestionRenderer<BasicSuggestion> suggestionRenderer1 = suggestion -> new JLabel(suggestion.getToDisplay(), iconForString(suggestion.getToDisplay()), SwingConstants.CENTER);
+      final SelectionListener<BasicSuggestion> selectionListener1 = new StringInsertSuggestionListener();
       SuggestDecorator.decorate(jTextArea, suggestionSource1, suggestionRenderer1, selectionListener1);
 
       textField.setText(File.listRoots()[0].getAbsolutePath());
