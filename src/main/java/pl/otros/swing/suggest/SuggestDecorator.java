@@ -24,27 +24,62 @@ import java.awt.event.FocusEvent;
 
 public class SuggestDecorator {
 
-  public static <T> void decorate(final JTextComponent textField, SuggestionSource<T> suggestionSource, SuggestionRenderer<T> suggestionRenderer, SelectionListener<T>
-          selectionListener) {
-    Document document = textField.getDocument();
-    SuggestionDocumentListener<? extends T> listener = new SuggestionDocumentListener<>(textField, suggestionSource, suggestionRenderer, selectionListener);
-    document.addDocumentListener(listener);
-    textField.addFocusListener(new FocusAdapter() {
-      @Override
-      public void focusGained(FocusEvent e) {
-        //do not select all on OSX after suggestion is selected
-        if (e.getOppositeComponent() == null) {
-          clearTextFieldSelectionAsync(textField);
-        }
-      }
-    });
+  /**
+   * Add popup with suggestion to text component
+   * @param textComponent  text component
+   * @param suggestionSource source of suggestions
+   * @param suggestionRenderer renderer for suggestions
+   * @param selectionListener suggestion listener to be executed after suggestion is selected
+   * @param <T> Suggestion type
+   */
+  public static <T> void decorate(final JTextComponent textComponent,
+                                  SuggestionSource<T> suggestionSource,
+                                  SuggestionRenderer<T> suggestionRenderer,
+                                  SelectionListener<T> selectionListener) {
+    decorate(textComponent, suggestionSource, suggestionRenderer, selectionListener, false);
+  }
 
+
+  /**
+   * Add popup with suggestion to text component
+   * @param textComponent  text component
+   * @param suggestionSource source of suggestions
+   * @param suggestionRenderer renderer for suggestions
+   * @param selectionListener suggestion listener to be executed after suggestion is selected
+   * @param clearFocusAfterSelection true if text selection should be removed and caret set to end of text after selecting suggestion
+   * @param <T> Suggestion type
+   */
+  public static <T> void decorate(final JTextComponent textComponent,
+                                  SuggestionSource<T> suggestionSource,
+                                  SuggestionRenderer<T> suggestionRenderer,
+                                  SelectionListener<T> selectionListener,
+                                  boolean clearFocusAfterSelection) {
+
+    Document document = textComponent.getDocument();
+    SuggestionDocumentListener<? extends T> listener = new SuggestionDocumentListener<>(textComponent, suggestionSource, suggestionRenderer, selectionListener);
+    document.addDocumentListener(listener);
+    if (clearFocusAfterSelection) {
+      textComponent.addFocusListener(new FocusAdapter() {
+        @Override
+        public void focusGained(FocusEvent e) {
+          //do not select all on OSX after suggestion is selected
+          if (e.getOppositeComponent() == null) {
+            clearTextFieldSelectionAsync(textComponent);
+          }
+        }
+      });
+    }
   }
 
   static void clearTextFieldSelectionAsync(final JTextComponent textField) {
     SwingUtilities.invokeLater(() -> {
       textField.select(0, 0);
-      textField.setCaretPosition(textField.getText().length());
+      final int length = textField.getDocument().getLength();
+      try {
+        textField.setCaretPosition(length);
+      } catch (Exception ignore) {
+        System.err.println("Can't set caret position to length: " + length);
+      }
     });
   }
 }
