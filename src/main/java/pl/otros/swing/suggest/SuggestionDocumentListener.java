@@ -306,27 +306,27 @@ class SuggestionDocumentListener<T> implements DocumentListener {
   }
 
   private void setSuggestionWindowLocation() {
-    suggestionWindow.pack();
-    if (textComponent instanceof JTextField) {
-      int width = Math.max(textComponent.getWidth(), suggestionWindow.getWidth());
-      suggestionWindow.setSize(width, (int) Math.min(suggestionWindow.getHeight(), Toolkit.getDefaultToolkit().getScreenSize().getHeight() / 2));
-      int x = (int) textComponent.getLocationOnScreen().getX();
-      int y = (int) (textComponent.getLocationOnScreen().getY() + textComponent.getHeight());
-      suggestionWindow.setLocation(x, y);
-    } else {
-      try {
-        final int caretPosition = Math.min(textComponent.getText().length(), textComponent.getCaretPosition());
-        final Rectangle rectangle = textComponent.modelToView(caretPosition);
-        final Point p = new Point(rectangle.x, rectangle.y + rectangle.height);
-        SwingUtilities.convertPointToScreen(p, textComponent);
-        suggestionWindow.setLocation(p.x, p.y);
-      } catch (BadLocationException e) {
-        e.printStackTrace();
+    if (textComponent.isShowing()){
+      suggestionWindow.pack();
+      if (textComponent instanceof JTextField) {
+        int width = Math.max(textComponent.getWidth(), suggestionWindow.getWidth());
+        suggestionWindow.setSize(width, (int) Math.min(suggestionWindow.getHeight(), Toolkit.getDefaultToolkit().getScreenSize().getHeight() / 2));
+        int x = (int) textComponent.getLocationOnScreen().getX();
+        int y = (int) (textComponent.getLocationOnScreen().getY() + textComponent.getHeight());
+        suggestionWindow.setLocation(x, y);
+      } else {
+        try {
+          final int caretPosition = Math.min(textComponent.getText().length(), textComponent.getCaretPosition());
+          final Rectangle rectangle = textComponent.modelToView(caretPosition);
+          final Point p = new Point(rectangle.x, rectangle.y + rectangle.height);
+          SwingUtilities.convertPointToScreen(p, textComponent);
+          suggestionWindow.setLocation(p.x, p.y);
+        } catch (BadLocationException e) {
+          e.printStackTrace();
+        }
       }
     }
   }
-
-
 
 
   private abstract class DelayedSwingInvoke {
